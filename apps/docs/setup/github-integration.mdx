@@ -1,0 +1,322 @@
+---
+title: "GitHub Integration"
+description: "How to connect to GitHub and select repositories in Open SWE"
+---
+
+# GitHub Integration Guide
+
+This guide explains how Open SWE connects to GitHub and how repository selection works. Understanding this flow will help you set up and use Open SWE effectively.
+
+## Overview
+
+Open SWE uses a two-step authentication and authorization process to work with your GitHub repositories:
+
+1. **GitHub OAuth** - Authenticates you as a user
+2. **GitHub App Installation** - Grants Open SWE access to specific repositories
+
+Both steps are required for Open SWE to function properly.
+
+## Step 1: Connecting Your GitHub Account
+
+### What is GitHub OAuth?
+
+GitHub OAuth is the authentication mechanism that verifies your identity. When you sign in with GitHub, you're telling GitHub "Yes, this is me" and allowing Open SWE to know who you are.
+
+### How to Connect
+
+<Steps>
+  <Step title="Navigate to Open SWE">
+    Visit the Open SWE web application at `http://localhost:3000` (for development) or your production URL.
+  </Step>
+
+  <Step title="Click Sign In">
+    If you're not already logged in, you'll be prompted to sign in with GitHub. Click the "Sign in with GitHub" button.
+  </Step>
+
+  <Step title="Authorize Open SWE">
+    GitHub will ask you to authorize the Open SWE application. This grants Open SWE permission to:
+    - Read your basic profile information
+    - Know your username and email
+    - Verify your identity
+
+    Click "Authorize" to continue.
+  </Step>
+
+  <Step title="Redirected Back">
+    After authorization, you'll be redirected back to Open SWE, now logged in with your GitHub account.
+  </Step>
+</Steps>
+
+<Note>
+  GitHub OAuth only authenticates **who you are**. It does not grant Open SWE access to your repositories yet. That happens in Step 2.
+</Note>
+
+### OAuth Token Storage
+
+Once authenticated, Open SWE stores your OAuth access token securely:
+
+- **Storage**: HTTP-only cookies for security
+- **Duration**: 30 days by default
+- **Usage**: User-specific actions (viewing repositories, creating issues as yourself)
+
+The OAuth token is never exposed to the browser's JavaScript and is transmitted securely between the web app and the agent.
+
+## Step 2: Installing the GitHub App
+
+### What is a GitHub App?
+
+A GitHub App is an integration that can perform actions on your behalf in specific repositories. Unlike OAuth, which authenticates you as a user, a GitHub App installation grants Open SWE specific permissions to work with your code.
+
+### How Repository Selection Works
+
+When you install the Open SWE GitHub App, you choose which repositories to grant access to. This happens through GitHub's installation flow:
+
+<Steps>
+  <Step title="Navigate to Settings">
+    After signing in with GitHub OAuth, go to the Settings page in Open SWE (usually found in the navigation menu or at `/settings`).
+  </Step>
+
+  <Step title="Connect GitHub App">
+    Look for the "GitHub Manager" section and click "Connect GitHub App" or "Install GitHub App".
+  </Step>
+
+  <Step title="Choose Installation Type">
+    GitHub will ask you where to install the app:
+    
+    - **Personal Account**: Install on repositories you own personally
+    - **Organization**: Install on repositories owned by an organization (requires org admin permissions)
+  </Step>
+
+  <Step title="Select Repositories">
+    This is where repository selection happens! You have two options:
+
+    **Option A: All Repositories**
+    - Select "All repositories" to grant Open SWE access to every repository in your account or organization
+    - New repositories will automatically be included
+    - Useful if you plan to use Open SWE across many projects
+
+    **Option B: Select Repositories**
+    - Choose "Only select repositories"
+    - Use the dropdown to pick specific repositories
+    - More secure - limits Open SWE's access to only what you need
+    - You can add more repositories later
+
+    ![GitHub App Installation Screenshot](/images/github_app_installation.png)
+  </Step>
+
+  <Step title="Review Permissions">
+    GitHub will show you the permissions Open SWE is requesting:
+    - **Read & Write** access to code (Contents)
+    - **Read & Write** access to issues
+    - **Read & Write** access to pull requests
+    - **Read** access to metadata
+
+    These permissions allow Open SWE to:
+    - Clone repositories
+    - Create branches
+    - Make commits
+    - Create and update pull requests
+    - Create and comment on issues
+  </Step>
+
+  <Step title="Complete Installation">
+    Click "Install" or "Install & Authorize" to complete the process.
+  </Step>
+</Steps>
+
+### What Happens After Installation
+
+Once you install the GitHub App:
+
+1. **Installation Token Generated**: GitHub creates an installation token specific to your selected repositories
+2. **Token Encrypted**: Open SWE encrypts this token using AES-256-GCM encryption
+3. **Token Stored**: The encrypted token is stored securely and associated with your user account
+4. **Repositories Available**: Your selected repositories now appear in the Open SWE interface
+
+## How Repository Selection is Enforced
+
+Open SWE only has access to repositories you explicitly selected during installation. Here's how this is enforced:
+
+### GitHub's Security Layer
+
+GitHub ensures that:
+- Installation tokens only work for selected repositories
+- Requests to other repositories return 404 (Not Found) errors
+- Permissions are scoped to what you approved
+
+### Open SWE's Implementation
+
+When you use Open SWE:
+
+1. **Repository List**: The web app fetches your available repositories using the installation token
+   ```typescript
+   // This API call returns only repositories you granted access to
+   GET /api/github/repositories
+   ```
+
+2. **API Enforcement**: GitHub's API automatically rejects requests for repositories not included in the installation
+
+3. **UI Display**: Only accessible repositories appear in the repository selector
+
+### Example: Repository API Call
+
+When Open SWE needs to list your repositories, it uses the `getInstallationRepositories` function:
+
+```typescript
+// Fetches only repositories in the GitHub App installation
+const response = await fetch(
+  'https://api.github.com/installation/repositories',
+  {
+    headers: {
+      Authorization: `Bearer ${installationToken}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  }
+);
+```
+
+This API endpoint returns only the repositories you selected during installation, making it impossible for Open SWE to access others.
+
+## Managing Your Connected Repositories
+
+### Viewing Connected Repositories
+
+To see which repositories are currently accessible to Open SWE:
+
+1. Go to Settings → GitHub Manager
+2. Your connected repositories will be listed with:
+   - Repository name
+   - Public/Private status
+   - Default branch
+   - Description
+
+### Adding More Repositories
+
+To grant Open SWE access to additional repositories:
+
+<Steps>
+  <Step title="Go to GitHub Settings">
+    Visit [GitHub Apps Settings](https://github.com/settings/installations)
+  </Step>
+
+  <Step title="Find Open SWE">
+    Locate the Open SWE app in your installed GitHub Apps list
+  </Step>
+
+  <Step title="Configure">
+    Click "Configure" next to the Open SWE app
+  </Step>
+
+  <Step title="Update Repository Access">
+    - Modify your repository selection
+    - Add or remove specific repositories
+    - Or change from "Select repositories" to "All repositories"
+  </Step>
+
+  <Step title="Save Changes">
+    Click "Save" - the changes take effect immediately
+  </Step>
+
+  <Step title="Refresh in Open SWE">
+    Return to Open SWE and refresh the page to see your updated repository list
+  </Step>
+</Steps>
+
+### Removing Repositories
+
+To revoke Open SWE's access to specific repositories:
+
+1. Follow the same steps as "Adding More Repositories"
+2. Deselect repositories you want to remove
+3. Save your changes
+
+<Warning>
+  If Open SWE has active runs for a repository you remove, those runs may fail to complete. Ensure all work is finished before revoking access.
+</Warning>
+
+## Connection Troubleshooting
+
+### "No repositories found"
+
+**Possible causes:**
+- You haven't installed the GitHub App yet
+- You selected zero repositories during installation
+- The installation token has expired
+
+**Solution:**
+1. Go to Settings → GitHub Manager
+2. Click "Install GitHub App" or "Refresh Installation"
+3. Select at least one repository
+
+### "Failed to fetch repositories"
+
+**Possible causes:**
+- Network connectivity issues
+- GitHub API is temporarily unavailable
+- Installation token needs to be refreshed
+
+**Solution:**
+1. Check your internet connection
+2. Click "Refresh" in the GitHub Manager
+3. If the problem persists, try disconnecting and reconnecting your GitHub account
+
+### Organization repositories not visible
+
+**Possible causes:**
+- Organization requires admin approval for GitHub Apps
+- You don't have permission to install apps in the organization
+
+**Solution:**
+1. Contact your organization administrator
+2. Ask them to approve the Open SWE GitHub App installation request
+3. Once approved, refresh the page in Open SWE
+
+<Note>
+  See the [FAQ](/labs/swe/faq) for more troubleshooting tips, including "I installed Open SWE on a repository in my organization, but it doesn't show up in the UI. Why?"
+</Note>
+
+## Security Considerations
+
+### Token Security
+
+Open SWE takes several measures to protect your GitHub tokens:
+
+1. **Encryption at Rest**: All tokens are encrypted using AES-256-GCM before storage
+2. **Encryption in Transit**: Tokens are encrypted when sent between the web app and agent
+3. **HTTP-Only Cookies**: OAuth tokens use HTTP-only cookies to prevent JavaScript access
+4. **Scoped Permissions**: Tokens only have the permissions you explicitly granted
+
+### Access Control
+
+- **User Isolation**: You can only access repositories you have personal access to
+- **Run Privacy**: Only you can view and manage your Open SWE runs
+- **Audit Trail**: All actions are logged and can be traced back to your GitHub account
+
+For more details, see the [Authentication](/labs/swe/setup/authentication) and [Secrets](/labs/swe/secrets) documentation.
+
+## Advanced: Programmatic Access
+
+For automation and scripting, you can also connect to Open SWE using bearer token authentication:
+
+```typescript
+import { Client } from "@langchain/langgraph-sdk";
+
+const client = new Client({
+  apiUrl: "http://localhost:2024",
+  defaultHeaders: {
+    authorization: `Bearer ${process.env.API_BEARER_TOKEN}`,
+  },
+});
+```
+
+See the [Authentication](/labs/swe/setup/authentication) guide for more details on bearer token setup.
+
+## Summary
+
+To use Open SWE with your GitHub repositories:
+
+1. ✅ **Sign in with GitHub OAuth** - Authenticates your identity
+2. ✅ **Install the GitHub App** - Select which repositories to grant access to
+3. ✅ **Manage access** - Add or remove repositories as needed through GitHub settings
+
+The repository selection happens during GitHub App installation, and you have full control over which repositories Open SWE can access. You can modify this selection at any time through your GitHub settings.

@@ -46,6 +46,56 @@ description: Frequently Asked Questions
   Some GitHub organizations require administrator approval to install GitHub apps. Please reach out to an administrator in your organization to approve the installation request.  
 </Accordion>
 
+<Accordion title="How do I select which repositories Open SWE can access?">
+  Repository selection happens during the GitHub App installation process:
+  
+  1. After signing in with GitHub OAuth, go to Settings → GitHub Manager
+  2. Click "Install GitHub App" or "Connect GitHub App"
+  3. GitHub will ask you to choose between:
+     - **All repositories**: Grants access to all current and future repositories
+     - **Only select repositories**: Choose specific repositories from a dropdown
+  4. Select your preferred option and complete the installation
+  
+  You can modify this selection at any time by visiting [GitHub Apps Settings](https://github.com/settings/installations), clicking "Configure" next to Open SWE, and updating your repository selection.
+  
+  For more details, see the [GitHub Integration](/labs/swe/setup/github-integration) guide.
+</Accordion>
+
+<Accordion title="What's the difference between GitHub OAuth and the GitHub App?">
+  These are two separate but complementary authentication mechanisms:
+  
+  **GitHub OAuth:**
+  - Authenticates **who you are** (your identity)
+  - Grants access to your profile information
+  - Used for user-specific actions (creating issues as yourself)
+  - Stored as HTTP-only cookies for 30 days
+  
+  **GitHub App:**
+  - Authorizes **what Open SWE can do** (permissions and repository access)
+  - Grants access to specific repositories you select
+  - Used for code operations (commits, pull requests)
+  - Installation tokens are encrypted and stored securely
+  
+  Both are required for Open SWE to function. Think of OAuth as your ID badge and the GitHub App as your access card to specific rooms.
+  
+  Learn more in the [GitHub Integration](/labs/swe/setup/github-integration) and [Authentication](/labs/swe/setup/authentication) guides.
+</Accordion>
+
+<Accordion title="Can I add or remove repositories after initial installation?">
+  Yes! You can modify your repository access at any time:
+  
+  1. Go to [GitHub Apps Settings](https://github.com/settings/installations)
+  2. Find the Open SWE app and click "Configure"
+  3. Update your repository selection:
+     - Add new repositories
+     - Remove existing repositories
+     - Switch between "All repositories" and "Select repositories"
+  4. Click "Save"
+  5. Return to Open SWE and refresh the page
+  
+  Changes take effect immediately. However, if you remove a repository that has active runs, those runs may fail to complete.
+</Accordion>
+
 <Accordion title="What sandbox environment is Open SWE running in?">
   Open SWE's sandbox environment is powered by [Daytona.io](https://daytona.io).
 </Accordion>
